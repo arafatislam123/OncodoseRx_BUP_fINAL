@@ -284,10 +284,10 @@ class Agent:
 
         # --- act ----------------------------------------------------------------
         heur_totals = heuristic.total_by_station(problem, lag) if heuristic else {}
-        submissions, reviewed = self._decide(snap, problem, mode, plan, fallback, orders, no_action, with_plan,
+        submissions, _ = self._decide(snap, problem, mode, plan, fallback, orders, no_action, with_plan,
                                              heur_totals, lead, cycle_id, mm)
         submissions += self._approved_submissions(problem, orders, snap)
-        self.queue.expire(tick, reviewed)
+        self.queue.expire(tick)
         outcomes = await self.executor.submit(submissions, snap.epoch)
         for outcome in outcomes:
             self._record_outcome(outcome.key, outcome.state, outcome.allocation_id, outcome.code)
@@ -437,8 +437,8 @@ class Agent:
             if not problem.route_ok[r, problem.lag] or headroom[s, f] < rec.quantity:
                 self.queue.mark(rec, "superseded", "the network changed before it could be sent")
                 continue
-            if new_qty > 0 and self.queue.needs_requantify(rec, new_qty):
-                self.queue.mark(rec, "superseded", f"plan now wants {new_qty:,.0f} L; sent back for review")
+            if self.queue.needs_requantify(rec, new_qty) and new_qty > 0:
+                self.queue.mark(rec, "superseded", f"plan now needs {new_qty:,.0f} L; sent back for review")
                 continue
             target = problem.t0 + problem.lag
             route = problem.routes[r]

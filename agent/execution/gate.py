@@ -148,16 +148,16 @@ class ApprovalQueue:
         self.changed.append(rec)
         return rec
 
-    def expire(self, tick: int, still_wanted: set[tuple[str, str, str]]) -> None:
-        """Expire old ones, and withdraw pending ones the latest plan no longer asks for."""
+    def expire(self, tick: int) -> None:
+        """Expire recommendations nobody reviewed in time; the planner re-proposes them if still needed.
+
+        Pending items are not withdrawn just because this cycle's plan didn't include
+        them: with a review grid the plan only ships on some ticks, and withdrawing
+        would churn the queue faster than a person can read it.
+        """
         for rec in self.items.values():
-            if rec.state != "pending":
-                continue
-            if tick > rec.expires_tick:
+            if rec.state == "pending" and tick > rec.expires_tick:
                 rec.state, rec.note = "expired", "expired before review; will be re-planned"
-                self.changed.append(rec)
-            elif self._key(rec.station_id, rec.fuel, rec.route_id) not in still_wanted:
-                rec.state, rec.note = "expired", "withdrawn: the latest plan no longer needs it"
                 self.changed.append(rec)
         # keep memory bounded
         done = [r for r in self.items.values() if r.state not in ("pending", "approved")]
@@ -174,9 +174,14 @@ class ApprovalQueue:
         self.changed.append(rec)
 
     def needs_requantify(self, rec: Recommendation, new_quantity: float) -> bool:
+        """Only when the plan now needs clearly more than was approved.
+
+        Needing less is fine as long as the approved amount still fits the tank,
+        which the caller checks separately.
+        """
         if rec.quantity <= 0:
             return True
-        return abs(new_quantity - rec.quantity) / rec.quantity > self.tolerance
+        return new_quantity > rec.quantity * (1 + self.tolerance)
 
     def take_changed(self) -> list[Recommendation]:
         changed, self.changed = self.changed, []
