@@ -265,3 +265,34 @@ def build_problem(snapshot: Snapshot, forecaster: Forecaster, mm: MultiplierMode
         available_routes=available_routes, in_transit_total=in_transit_total,
         meta={"data_age": age},
     )
+
+
+ARRAY_FIELDS = ("inv0", "inv0_sd", "cap", "depot_inv0", "supply", "intransit", "mu", "sd", "route_ok",
+                "station_open", "demand_on", "dispatch_cap", "route_src", "route_dst", "route_transit",
+                "route_max", "cross", "available_routes", "in_transit_total")
+
+
+def problem_to_dict(problem: Problem) -> dict[str, Any]:
+    """JSON-friendly copy. Stored per cycle so any live decision can be replayed offline."""
+    out: dict[str, Any] = {
+        "t0": problem.t0, "lag": problem.lag, "H": problem.H, "dd": problem.dd,
+        "stations": problem.stations, "depots": problem.depots, "fuels": list(problem.fuels),
+        "routes": [r.model_dump() for r in problem.routes], "meta": problem.meta,
+    }
+    for name in ARRAY_FIELDS:
+        arr = getattr(problem, name)
+        out[name] = arr.round(3).tolist() if arr.dtype.kind == "f" else arr.tolist()
+    return out
+
+
+def problem_from_dict(data: dict[str, Any]) -> Problem:
+    kwargs: dict[str, Any] = {
+        "t0": data["t0"], "lag": data["lag"], "H": data["H"], "dd": data["dd"],
+        "stations": list(data["stations"]), "depots": list(data["depots"]), "fuels": tuple(data["fuels"]),
+        "routes": [Route.model_validate(r) for r in data["routes"]], "meta": data.get("meta", {}),
+    }
+    for name in ARRAY_FIELDS:
+        dtype = bool if name in ("route_ok", "station_open", "cross") else (
+            int if name in ("route_src", "route_dst", "route_transit") else float)
+        kwargs[name] = np.array(data[name], dtype=dtype)
+    return Problem(**kwargs)
