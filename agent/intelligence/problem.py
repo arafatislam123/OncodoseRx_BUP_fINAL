@@ -220,10 +220,8 @@ def build_problem(snapshot: Snapshot, forecaster: Forecaster, mm: MultiplierMode
             elif event.type == "supply_shortfall" and planned >= event.start_tick:
                 qty *= float(params.get("factor", 0.5))
         j = planned - t0
-        if 0 <= j < H:
+        if 0 <= j < H:  # anything planned before t0 is already in the depot inventory
             supply[d_idx[arr.depot_id], f_idx[arr.fuel_type], j] += qty
-        elif j < 0:
-            depot_inv0[d_idx[arr.depot_id], f_idx[arr.fuel_type]] += 0.0  # already counted in inventory
 
     # --- dispatch capacity ------------------------------------------------
     dispatch_cap = np.zeros((D, H))
