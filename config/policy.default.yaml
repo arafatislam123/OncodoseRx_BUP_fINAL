@@ -19,8 +19,8 @@ planner:
   lambda_depot_value: 0.01
   # safety stock
   ss_z: 1.2816          # P90
-  ss_min_cover_ticks: 4  # safety stock is never below 4 ticks of demand
-  stranded_lookahead_ticks: 16
+  ss_min_cover_ticks: 12  # never below 3 h of demand; a 30 s API outage is 60 ticks at speed 8
+  stranded_lookahead_ticks: 24
 
 forecaster:
   prior_var: 0.04
@@ -40,6 +40,7 @@ detector:
 
 projection:
   samples: 200
+  risk_window_ticks: 16   # stockout risk is measured over lead time plus review, about 4 h
 
 gate:
   confidence_review_threshold: 0.6

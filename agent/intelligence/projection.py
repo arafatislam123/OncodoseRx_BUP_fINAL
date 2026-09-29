@@ -45,8 +45,8 @@ def plan_arrivals(problem: Problem, orders: dict[tuple[int, int, int], float]) -
 
 
 def project(problem: Problem, extra: np.ndarray | None = None, samples: int = 200,
-            seed: int = 7, horizon: int | None = None,
-            overflow: str = "lost") -> dict[tuple[str, str], ProjectionResult]:
+            seed: int = 7, horizon: int | None = None, overflow: str = "lost",
+            bands: bool = False) -> dict[tuple[str, str], ProjectionResult]:
     """Project every station/fuel forward. extra holds arrivals from a proposed plan."""
     H = horizon or problem.H
     S, F = problem.S, problem.F
@@ -79,21 +79,26 @@ def project(problem: Problem, extra: np.ndarray | None = None, samples: int = 20
         inv = level - served
         path[:, :, :, k] = inv
 
+    hit_all = first_out >= 0
+    p_out = hit_all.mean(axis=0)
+    unmet_mean = unmet_total.mean(axis=0)
+    end_q = np.percentile(path[:, :, :, H - 1], [10, 50, 90], axis=0)
+    band = np.percentile(path, [10, 90], axis=0).round(1) if bands else None
+
     results: dict[tuple[str, str], ProjectionResult] = {}
     for s, sid in enumerate(problem.stations):
         for f, fuel in enumerate(problem.fuels):
             outs = first_out[:, s, f]
-            hit = outs >= 0
+            hit = hit_all[:, s, f]
             ttso = int(np.median(outs[hit])) + 1 if hit.any() else None
-            end = path[:, s, f, H - 1]
             results[(sid, fuel)] = ProjectionResult(
-                p_stockout=float(hit.mean()),
+                p_stockout=float(p_out[s, f]),
                 time_to_stockout_ticks=ttso,
-                expected_unmet=float(unmet_total[:, s, f].mean()),
-                end_p10=float(np.percentile(end, 10)),
-                end_p50=float(np.percentile(end, 50)),
-                end_p90=float(np.percentile(end, 90)),
-                band_p10=np.percentile(path[:, s, f, :], 10, axis=0).round(1).tolist(),
-                band_p90=np.percentile(path[:, s, f, :], 90, axis=0).round(1).tolist(),
+                expected_unmet=float(unmet_mean[s, f]),
+                end_p10=float(end_q[0, s, f]),
+                end_p50=float(end_q[1, s, f]),
+                end_p90=float(end_q[2, s, f]),
+                band_p10=band[0, s, f].tolist() if band is not None else [],
+                band_p90=band[1, s, f].tolist() if band is not None else [],
             )
     return results
