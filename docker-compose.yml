@@ -67,6 +67,32 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  api:
+    image: ghcr.io/arafatislam123/fsa-api:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: fsa-api
+    environment:
+      AGENT_URL: http://agent:9100
+      SIMULATOR_BASE_URL: ${SIMULATOR_BASE_URL:-http://simulator:8000}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-fsa}
+      OPERATOR_TOKEN: ${OPERATOR_TOKEN:?set OPERATOR_TOKEN in .env}
+      WEB_ORIGIN: http://localhost:3000
+      LLM_PROVIDER: ${LLM_PROVIDER:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      agent:
+        condition: service_started
+    restart: unless-stopped
+    logging: *logging
+
 volumes:
   pg-data:
   agent-data:
