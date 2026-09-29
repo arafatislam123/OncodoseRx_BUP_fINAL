@@ -1,0 +1,30 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# node
+node_modules/
+web/dist/
+
+# env and local data
+.env
+*.sqlite
+*.sqlite-journal
+*.db
+data/
+
+# results that get regenerated
+loadtest/results/*.json
+harness/out/
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
