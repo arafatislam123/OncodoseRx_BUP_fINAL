@@ -6,9 +6,9 @@ region trips, shipment count, and minus the value of fuel still sitting at a
 depot where it can go anywhere. Only the first slot is executed; the LP is
 solved again every cycle.
 
-Orders may only be created on a review grid (now, now + 8, ...). Without it
-the LP happily sends 100 L every tick, since shipment count is only a small
-linear cost. The model is built with Constraint.SetCoefficient rather than
+Orders may only be created now or on a fixed review grid (every 8th tick).
+Without it the LP happily sends 100 L every tick, since shipment count is only
+a small linear cost. The model is built with Constraint.SetCoefficient rather than
 Python expressions, which keeps build time well under the 150 ms budget.
 """
 
@@ -78,9 +78,11 @@ def solve_lp(problem: Problem, policy: dict[str, Any] | None = None,
     lands: dict[tuple[int, int, int], list[Any]] = defaultdict(list)   # (s, f, k) -> vars
     for r in range(R):
         cost = lam_dep + lam_n / float(problem.route_max[r]) + (lam_x if problem.cross[r] else 0.0)
-        # periodic review: orders can only be created every `review` slots, so an
-        # order placed now has to cover demand until the next chance to ship
-        for j in range(lag, H, review):
+        # periodic review on a fixed grid of absolute ticks: an order placed now has
+        # to cover demand until the next grid tick's order lands. Slot `lag` is always
+        # open so an urgent need never waits, but off-grid it only gets what can't wait.
+        slots = [lag] + [j for j in range(lag + 1, H) if (problem.t0 + j) % review == 0]
+        for j in slots:
             k = problem.arrival_index(r, j)
             if not problem.route_ok[r, j] or k >= H:
                 continue
