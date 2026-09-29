@@ -1,0 +1,18 @@
+name: fsa
+
+services:
+  simulator:
+    image: asifmahmoud414/bup-fuel-supply-simulator:1.0.0
+    container_name: fsa-simulator
+    environment:
+      SIMULATION_SPEED: ${SIMULATION_SPEED:-8}
+      TICK_MINUTES: ${TICK_MINUTES:-15}
+      SIMULATOR_START_MODE: ${SIMULATOR_START_MODE:-paused}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/v1/health')\" || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
