@@ -10,7 +10,7 @@ from __future__ import annotations
 import itertools
 import time
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from agent.intelligence.orders import PlannedOrder
 
@@ -94,19 +94,19 @@ class Recommendation:
 
 
 class ApprovalQueue:
-    def __init__(self, ttl_ticks: int = 8, tolerance: float = 0.10) -> None:
+    def __init__(self, ttl_ticks: int = 8, tolerance: float = 0.10,
+                 next_id: Callable[[], str] | None = None) -> None:
         self.ttl = ttl_ticks
         self.tolerance = tolerance
         self.items: dict[str, Recommendation] = {}
-        self._ids = itertools.count(1)
+        counter = itertools.count(1)
+        self._next_id = next_id or (lambda: f"rec-{next(counter):06d}")
         self.changed: list[Recommendation] = []
 
     def restore(self, rows: list[dict[str, Any]]) -> None:
         for row in rows:
             rec = Recommendation(**row)
             self.items[rec.id] = rec
-            num = int(rec.id.split("-")[-1]) if rec.id.split("-")[-1].isdigit() else 0
-            self._ids = itertools.count(max(num + 1, next(self._ids)))
 
     def _key(self, station: str, fuel: str, route: str) -> tuple[str, str, str]:
         return (station, fuel, route)
@@ -130,7 +130,7 @@ class ApprovalQueue:
         if rec is not None:
             return rec   # approved and waiting to be sent
         rec = Recommendation(
-            id=f"rec-{next(self._ids):06d}", decision_id=decision_id, station_id=order.station_id,
+            id=self._next_id(), decision_id=decision_id, station_id=order.station_id,
             fuel=order.fuel, route_id=order.route_id, depot_id=order.depot_id, quantity=order.quantity,
             created_tick=tick, expires_tick=tick + self.ttl, reasons=reasons, confidence=confidence,
             impact=impact, cross_region=order.cross_region,

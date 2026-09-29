@@ -18,7 +18,7 @@ SEVERITY_RANK = {"info": 0, "warn": 1, "crit": 2}
 
 @dataclass
 class Alert:
-    id: int
+    id: str
     type: str
     severity: str
     entity: str
@@ -40,9 +40,9 @@ class Alert:
 
 @dataclass
 class Incident:
-    id: int
+    id: str
     opened_tick: int
-    alert_ids: list[int]
+    alert_ids: list[str]
     closed_tick: int | None = None
     summary: str = ""
 
@@ -51,7 +51,9 @@ class Incident:
 
 
 class AlertManager:
-    def __init__(self, incident_quiet_ticks: int = 4) -> None:
+    def __init__(self, incident_quiet_ticks: int = 4, id_prefix: str = "") -> None:
+        # ids are written to Postgres, so a per-boot prefix keeps them unique across restarts
+        self.prefix = id_prefix
         self._ids = itertools.count(1)
         self._incident_ids = itertools.count(1)
         self.open: dict[tuple[str, str, str | None], Alert] = {}
@@ -75,7 +77,7 @@ class AlertManager:
         self._seen.add(key)
         alert = self.open.get(key)
         if alert is None:
-            alert = Alert(next(self._ids), type_, severity, entity, fuel, message,
+            alert = Alert(f"al-{self.prefix}{next(self._ids)}", type_, severity, entity, fuel, message,
                           evidence or {}, tick, tick)
             self.open[key] = alert
             metrics.ALERTS_RAISED.labels(type_, severity).inc()
@@ -110,7 +112,8 @@ class AlertManager:
         serious = [a for a in self.open.values() if SEVERITY_RANK[a.severity] >= 1]
         if self.incident is None:
             if len(serious) >= 2:
-                self.incident = Incident(next(self._incident_ids), tick, [a.id for a in serious])
+                self.incident = Incident(f"inc-{self.prefix}{next(self._incident_ids)}", tick,
+                                         [a.id for a in serious])
                 self.incident.summary = self.summarise(serious)
                 self.incidents.append(self.incident)
                 self.changed_incidents.append(self.incident)
