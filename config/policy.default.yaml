@@ -7,6 +7,7 @@ planner:
   time_limit_ms: 150
   bucket_liters: 250
   min_shipment: 500
+  review_ticks: 8        # orders can be created every 8 ticks within the plan
   # objective weights
   w_unmet: 1.0
   w_decay: 0.995
@@ -18,6 +19,7 @@ planner:
   lambda_depot_value: 0.01
   # safety stock
   ss_z: 1.2816          # P90
+  ss_min_cover_ticks: 4  # safety stock is never below 4 ticks of demand
   stranded_lookahead_ticks: 16
 
 forecaster:
