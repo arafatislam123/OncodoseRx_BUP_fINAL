@@ -1,0 +1,13 @@
+.git
+.github
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/node_modules
+web/dist
+data
+*.sqlite
+.env
+loadtest/results
+harness/out
+docs

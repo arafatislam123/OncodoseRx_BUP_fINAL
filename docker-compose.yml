@@ -1,5 +1,11 @@
 name: fsa
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   simulator:
     image: asifmahmoud414/bup-fuel-supply-simulator:1.0.0
@@ -16,3 +22,51 @@ services:
       timeout: 3s
       retries: 20
     restart: unless-stopped
+    logging: *logging
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: fsa-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-fsa}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    logging: *logging
+
+  agent:
+    image: ghcr.io/arafatislam123/fsa-agent:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
+    container_name: fsa-agent
+    environment:
+      SIMULATOR_BASE_URL: ${SIMULATOR_BASE_URL:-http://simulator:8000}
+      SIMULATION_SPEED: ${SIMULATION_SPEED:-8}
+      TICK_MINUTES: ${TICK_MINUTES:-15}
+      AGENT_AUTONOMY: ${AGENT_AUTONOMY:-copilot}
+      PLANNER_POLICY: ${PLANNER_POLICY:-lp}
+      PLANNER_HORIZON_TICKS: ${PLANNER_HORIZON_TICKS:-32}
+      APPROVAL_TTL_TICKS: ${APPROVAL_TTL_TICKS:-8}
+      CONFIDENCE_REVIEW_THRESHOLD: ${CONFIDENCE_REVIEW_THRESHOLD:-0.6}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-fsa}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - agent-data:/data
+    depends_on:
+      simulator:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  pg-data:
+  agent-data:
