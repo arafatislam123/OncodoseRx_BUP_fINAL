@@ -1,0 +1,57 @@
+# Default planner and forecaster settings. A copy of this is stored as a
+# versioned row in the policies table so it can be switched at runtime.
+version: lp-v1
+
+planner:
+  horizon_ticks: 32
+  time_limit_ms: 150
+  bucket_liters: 250
+  min_shipment: 500
+  # objective weights
+  w_unmet: 1.0
+  w_decay: 0.995
+  lambda_ss: 0.3
+  lambda_ss_single_route: 0.6
+  lambda_stranded: 0.05
+  lambda_cross_region: 0.02
+  lambda_shipments: 0.5
+  lambda_depot_value: 0.01
+  # safety stock
+  ss_z: 1.2816          # P90
+  stranded_lookahead_ticks: 16
+
+forecaster:
+  prior_var: 0.04
+  process_var: 0.0005
+  min_obs_var: 0.004
+  resid_ewma: 0.05
+
+detector:
+  stockout_warn: 0.2
+  stockout_crit: 0.5
+  stockout_warn_clear: 0.1
+  stockout_crit_clear: 0.3
+  cusum_k: 0.5
+  cusum_h: 5.0
+  z_alert: 3.0
+  runway_buffer_ticks: 8
+
+projection:
+  samples: 200
+
+gate:
+  confidence_review_threshold: 0.6
+  large_order_liters: 5000
+  degraded_auto_min_p_stockout: 0.3
+  approval_ttl_ticks: 8
+  requantify_tolerance: 0.10
+
+modes:
+  error_ratio_degraded: 0.30
+  window_s: 10
+  stale_degraded_s: 3
+  no_read_safe_s: 10
+  healthy_exit_s: 5
+  age_degraded_ticks: 8
+  age_safe_max_ticks: 24
+  age_ok_ticks: 4

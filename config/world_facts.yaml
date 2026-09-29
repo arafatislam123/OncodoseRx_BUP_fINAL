@@ -1,0 +1,12 @@
+# Written by `make probes`. Until the probes have run, these are the cautious
+# defaults described in section 21 of docs/SYSTEM_DESIGN.md.
+probed: false
+departure_delay_ticks: 1                 # P1
+dispatch_model: same_tick_pending        # P2: same_tick_pending | pending_and_in_transit
+overflow_policy: lost                    # P3: lost | clipped | kept
+arrival_during_outage: delivered         # P4: delivered | failed
+censoring_rule: exclude_stockout         # P5: exclude_stockout | include
+constrained_derate: 0.5                  # P6
+dest_capacity_counts_in_transit: true    # P7
+stale_age_method: sse_tick               # P8: sse_tick | last_fresh
+alloc_reconcile_interval_s: 2.0          # P9
