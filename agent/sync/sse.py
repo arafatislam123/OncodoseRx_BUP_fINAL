@@ -34,6 +34,7 @@ class SseState:
 def parse_sse(buffer: str) -> tuple[list[tuple[str, str]], str]:
     """Split raw stream text into (event, data) pairs. Returns leftover text too."""
     events: list[tuple[str, str]] = []
+    buffer = buffer.replace("\r\n", "\n")  # sse-starlette uses CRLF line endings
     while "\n\n" in buffer:
         block, buffer = buffer.split("\n\n", 1)
         name, data_lines = "message", []
