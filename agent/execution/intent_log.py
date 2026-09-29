@@ -120,6 +120,11 @@ class IntentLog:
         ).fetchall()
         return [self._row(r) for r in rows]
 
+    def recently_confirmed(self, seconds: float = 120.0) -> list[Intent]:
+        rows = self._exec("SELECT * FROM intents WHERE state='CONFIRMED' AND updated_wall >= ?",
+                          (time.time() - seconds,)).fetchall()
+        return [self._row(r) for r in rows]
+
     def recover_after_crash(self) -> int:
         """Anything that was mid-send when we died might have landed: mark it UNKNOWN."""
         cur = self._exec("UPDATE intents SET state='UNKNOWN', updated_wall=? WHERE state IN ('PLANNED','SENDING')",

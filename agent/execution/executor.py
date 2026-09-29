@@ -159,10 +159,18 @@ class Executor:
         self._publish_counts()
         return outcomes
 
-    def in_flight(self) -> list[InFlight]:
-        """UNKNOWN intents might have landed, so the planner treats them as sent."""
+    def in_flight(self, known_keys: set[str]) -> list[InFlight]:
+        """Orders the planner must treat as sent but can't see in the cached ledger yet.
+
+        That's UNKNOWN intents (they might have landed) and orders confirmed since
+        the last /v1/allocations read. Without the second group the planner would
+        order the same fuel again in the gap between two reconciles.
+        """
         items = []
-        for intent in self.intents.open_intents():
+        pending = self.intents.open_intents() + [
+            i for i in self.intents.recently_confirmed() if i.key not in known_keys
+        ]
+        for intent in pending:
             body = intent.body
             items.append(InFlight(depot=body["source_depot_id"], station=body["destination_station_id"],
                                   route=body["route_id"], fuel=body["fuel_type"], quantity=body["quantity"],
