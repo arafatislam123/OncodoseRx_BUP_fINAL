@@ -1,0 +1,41 @@
+# Priors copied from section 8 of the simulator integration guide.
+# The forecaster treats these as a starting point and corrects them online,
+# so if the judging scenario is a bit different the agent will adapt.
+
+fuels: [DIESEL, PETROL, OCTANE]
+
+regions:
+  region-dhaka: {demand_factor: 1.00}
+  region-chattogram: {demand_factor: 1.08}
+
+# liters per simulated day, plus relative noise
+profiles:
+  urban_high: {DIESEL: 8500, PETROL: 10500, OCTANE: 5600, noise: 0.10}
+  industrial: {DIESEL: 14000, PETROL: 4500, OCTANE: 2200, noise: 0.08}
+  highway: {DIESEL: 10500, PETROL: 11000, OCTANE: 6200, noise: 0.12}
+  regional: {DIESEL: 7200, PETROL: 7600, OCTANE: 3600, noise: 0.10}
+
+# Busy windows are lists of [start_hour, end_hour) ranges in simulated time.
+hour_factors:
+  industrial:
+    busy: [[6, 18]]
+    busy_factor: 1.55
+    off_factor: 0.45
+  highway:
+    busy: [[6, 10], [16, 21]]
+    busy_factor: 1.35
+    off_factor: 0.75
+  urban_high:
+    busy: [[7, 10], [16, 21]]
+    busy_factor: 1.45
+    off_factor: 0.70
+  regional:
+    busy: [[7, 21]]
+    busy_factor: 1.25
+    off_factor: 0.65
+
+# Baseline station multiplier when no demand_spike is active.
+baseline_station_multiplier: 1.0
+
+# Simulated clock starts at midnight.
+sim_start_hour: 0
